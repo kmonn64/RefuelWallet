@@ -1,0 +1,249 @@
+const https = require('https');
+const ethers = require('ethers');
+const config = require('./config');
+const tl = require('./translator');
+
+///////////////////////////
+//////// Constants ////////
+///////////////////////////
+
+const EMPTY_ADDRESS = "0x0000000000000000000000000000000000000000";
+const EMPTY_32BYTES = "0x0000000000000000000000000000000000000000000000000000000000000000";
+const EMPTY_ROOT_HASH = "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421";
+
+
+/////////////////////////
+//////// Queries ////////
+/////////////////////////
+
+async function fuel_blockNumber() {
+	let query = `
+	query BlockNumber($last: Int) {
+	  blocks(last: $last) {
+		nodes {
+		  header {
+			height
+		  }
+		}
+	  }
+	}`;
+	let variables = {
+		last: 1
+	};
+	let result = await graphql(query, variables);
+	return tl.toHexString(result.data.blocks.nodes[0].header.height);
+}
+
+async function fuel_getBlockByNumber(number, fullTransactions) {
+	let query = `
+	query BlockByNumber($height: Int) {
+	  block(height: $height) {
+		header {
+		  id
+		  transactionsRoot
+		  height
+		  prevRoot
+		  time
+		}
+		transactions {
+		  id
+		  gasLimit
+		  gasPrice
+		  receipts {
+			receiptType
+			gasUsed
+		  }
+		}
+	  }
+	}`;
+	let variables = {
+		"height": ("" + tl.toNumber(number))
+	};
+	let result = await graphql(query, variables);
+	//TODO: handle null result
+	return tl.fuelToEthBlock(result.data.block, fullTransactions);
+}
+
+async function fuel_getBlockByHash(blockHash, fullTransactions) {
+	let query = `
+	query BlockByHash($blockId: BlockId) {
+	  block(id: $blockId) {
+		header {
+		  id
+		  transactionsRoot
+		  height
+		  prevRoot
+		  time
+		}
+		transactions {
+		  id
+		  gasLimit
+		  gasPrice
+		  receipts {
+			receiptType
+			gasUsed
+		  }
+		}
+	  }
+	}`;
+	let variables = {
+		"blockId": blockHash
+	};
+	let result = await graphql(query, variables);
+	//TODO: handle null result
+	return tl.fuelToEthBlock(result.data.block, fullTransactions);
+}
+
+async function fuel_getLatestBlocks(count, fullTransactions) {
+	let query = `
+	query LatestBlock($last: Int) {
+	  blocks(last: $last) {
+		nodes {
+		  header {
+			id
+			transactionsRoot
+			height
+			prevRoot
+			time
+		  }
+		  transactions {
+			id
+			gasLimit
+			gasPrice
+			receipts {
+			  receiptType
+			  gasUsed
+			}
+		  }
+		}
+	  }
+	}`;
+	let variables = {
+		"last": tl.toNumber(count)
+	};
+	let result = await graphql(query, variables);
+	let blocks = [];
+	for(let i=0; i<result.data.blocks.nodes.length; i++) {
+		blocks.push(tl.fuelToEthBlock(result.data.blocks.nodes[i], fullTransactions));
+	}
+	return blocks;
+}
+
+async function fuel_getTransactionByHash(txHash) {
+	let query = `
+	query TransactionByHash($transactionId: TransactionId!) {
+	  transaction(id: $transactionId) {
+		gasPrice
+		id
+		status {
+		  ... on SuccessStatus {
+			block {
+			  transactions {
+				id
+				gasPrice
+				receipts {
+				  gasUsed
+				  receiptType
+				}
+			  }
+			  header {
+				height
+				id
+			  }
+			}
+		  }
+		  ... on FailureStatus {
+			block {
+			  transactions {
+				id
+				gasPrice
+				receipts {
+				  gasUsed
+				  receiptType
+				}
+			  }
+			  header {
+				height
+				id
+			  }
+			}
+		  }
+		}
+		receipts {
+		  receiptType
+		  gasUsed
+		}
+	  }
+	}`;
+	let variables = {
+		"transactionId": txHash
+	};
+	let result = await graphql(query, variables);
+	//TODO: handle null result
+	return tl.fuelToEthTx(result.data.transaction, result.data.transaction.status.block);
+}
+
+
+
+
+
+
+
+async function fuel_balanceTest(address, assetId) {
+	//this is a test query to get the balance of an address
+	let query = `
+	`;
+	let variables = {
+		address: tl.toFuelAddress(address),
+		assetId: config.FUEL_BASE_ASSET_ID //test
+	};
+	let result = await graphql(query, variables);
+	return 0;
+}
+
+
+///////////////////////////////
+//////// Graphql Utils ////////
+///////////////////////////////
+
+async function graphql(query, variables) {
+	//TODO: need better error handling (rejectnot even used)
+	return new Promise((resolve, reject) => {
+		let dataStr = JSON.stringify({
+		  query,
+		  variables,
+		});
+		let post_options = {
+			host: config.FUEL_GRAPHQL_HOST,
+			path: config.FUEL_GRAPHQL_PATH,
+			method: 'POST',
+			headers: {
+				'accept': 'application/json',
+				'content-type': 'application/json',
+				'content-length': Buffer.byteLength(dataStr)
+			}
+		};
+		let graphql = https.request(post_options, function(response) {
+			let json = '';
+			response.setEncoding('utf8');
+			response.on('data', function (chunk) {
+				json += chunk;
+			});
+			response.on('end', () => {
+				resolve(JSON.parse(json));
+			});
+		});
+		graphql.write(dataStr);
+		graphql.end();
+	});
+}
+
+
+/////////////////////////////////
+module.exports = {
+	blockNumber: fuel_blockNumber,
+	getBlockByNumber: fuel_getBlockByNumber,
+	getBlockByHash: fuel_getBlockByHash,
+	getLatestBlocks: fuel_getLatestBlocks,
+	getTransactionByHash: fuel_getTransactionByHash
+};

@@ -1,0 +1,15 @@
+{
+  "name": "RefuelWalletRPC",
+  "version": "0.1.0",
+  "description": "",
+  "main": "server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node test/test.js"
+  },
+  "author": "",
+  "dependencies": {
+    "ethers": "^5.6.9",
+    "express": "^4.14.0"
+  }
+}

@@ -1,0 +1,22 @@
+
+///////////////////////////
+//////// Constants ////////
+///////////////////////////
+
+const FUEL_GRAPHQL_HOST = "beta-3.fuel.network";
+const FUEL_GRAPHQL_PATH = "/graphql";
+const FUEL_BLOCK_GAS_LIMIT = "0x2540be400"; //10m
+const FUEL_PROTOCOL_VERSION = "0x41";
+const FUEL_CHAIN_ID = "0x97BC8"; //621512 (f u e l -> 6 21 5 12)
+const FUEL_BASE_ASSET_ID = "0x0000000000000000000000000000000000000000000000000000000000000000";
+
+
+/////////////////////////////////
+module.exports = {
+	FUEL_GRAPHQL_HOST: FUEL_GRAPHQL_HOST,
+	FUEL_GRAPHQL_PATH: FUEL_GRAPHQL_PATH,
+	FUEL_BLOCK_GAS_LIMIT: FUEL_BLOCK_GAS_LIMIT,
+	FUEL_PROTOCOL_VERSION: FUEL_PROTOCOL_VERSION,
+	FUEL_CHAIN_ID: FUEL_CHAIN_ID,
+	FUEL_BASE_ASSET_ID: FUEL_BASE_ASSET_ID
+};
