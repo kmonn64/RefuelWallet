@@ -90,7 +90,7 @@ app.post('*', async (req, res) => {
 			returnResponse(response, res, "0x0");
 			
 		} else if(data.method == 'eth_getCode') {
-			returnError(response, res, data.method);
+			returnResponse(response, res, "0x");
 			
 		} else if(data.method == 'eth_sign') {
 			returnError(response, res, data.method);

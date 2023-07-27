@@ -34,7 +34,7 @@ async function fuel_blockNumber() {
 	return tl.toHexString(result.data.blocks.nodes[0].header.height);
 }
 
-async function fuel_getBlockByNumber(number, fullTransactions) {
+async function fuel_getBlockByNumber(number, fullTransactions, skipRetry) {
 	let query = `
 	query BlockByNumber($height: Int) {
 	  block(height: $height) {
@@ -60,6 +60,9 @@ async function fuel_getBlockByNumber(number, fullTransactions) {
 		"height": ("" + tl.toNumber(number))
 	};
 	let result = await graphql(query, variables);
+	if(!skipRetry && !(result || result.data || result.data.block)) {
+		return await fuel_getBlockByNumber(number, fullTransactions, true);
+	}
 	//TODO: handle null result
 	return tl.fuelToEthBlock(result.data.block, fullTransactions);
 }

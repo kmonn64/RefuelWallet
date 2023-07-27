@@ -28,7 +28,7 @@ async function eth_gasPrice() {
 	}
 
 	// Calculate the average gas price
-	const averageGasPrice = tl.toHexString(floor(totalGasPrice / latestBlocks.length));
+	const averageGasPrice = tl.toHexString(Math.floor(totalGasPrice / latestBlocks.length));
 	return averageGasPrice;
 }
 
@@ -38,20 +38,20 @@ async function eth_blockNumber() {
 
 async function eth_getBalance(address, block) {
 	if(block == "latest" || block == "safe" || block == "finalized" || block == "pending") {
-		return fuel.fuel_getBalance(address, config.FUEL_BASE_ASSET_ID);
+		return tl.to18Decimals(await fuel.fuel_getBalance(address, config.FUEL_BASE_ASSET_ID));
 	} else if(block == "earliest") {
-		return 0;
+		return "0x0";
 	}
 
 	// Return the latest balance if the block number given is within 10 blocks of the latest block
 	const margin = 10;
 	const latestBlockNumber = await fuel.blockNumber();
 	if(tl.toNumber(block) > (tl.toNumber(latestBlockNumber) - margin)) {
-		return fuel.fuel_getBalance(address, config.FUEL_BASE_ASSET_ID);
+		return tl.to18Decimals(await fuel.fuel_getBalance(address, config.FUEL_BASE_ASSET_ID));
 	}
 
 	//TODO: this should be an error reporting that we don't support historical records of balances
-	return 0;
+	return "0x0";
 }
 
 async function eth_getTransactionCount(address, block) {
@@ -107,7 +107,7 @@ async function eth_getBlockByNumber(block, fullTransactions) {
 }
 
 async function eth_getTransactionByHash(txHash) {
-	return fuel.getTransactionByHash(txHash);
+	return await fuel.getTransactionByHash(txHash);
 }
 
 async function eth_getTransactionByBlockHashAndIndex(blockHash, index) {

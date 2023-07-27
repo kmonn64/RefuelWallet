@@ -163,6 +163,10 @@ function toNumber(numberish) {
 	return ethers.BigNumber.from(numberish).toNumber();
 }
 
+function to18Decimals(numberish) {
+	return ethers.BigNumber.from(numberish).mul(1000000000).toHexString();
+}
+
 
 //////////////////////////////////
 //////// Data Translators ////////
@@ -180,5 +184,6 @@ module.exports = {
 	fuelToEthTx: fuelToEthTx,
 	toFuelAddress: toFuelAddress,
 	toHexString: toHexString,
-	toNumber: toNumber
+	toNumber: toNumber,
+	to18Decimals: to18Decimals
 };
