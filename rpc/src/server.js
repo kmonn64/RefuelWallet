@@ -34,7 +34,10 @@ app.post('*', async (req, res) => {
 		}
 			
 		if(debugOutput) console.log("[info] " + data.method + " called");
-		if(data.method == 'eth_protocolVersion') {
+		if(data.method == 'net_version') {
+			returnResponse(response, res, parseInt(await eth.chainId(), 16));
+			
+		} else if(data.method == 'eth_protocolVersion') {
 			returnResponse(response, res, await eth.protocolVersion());
 			
 		} else if(data.method == 'eth_syncing') {

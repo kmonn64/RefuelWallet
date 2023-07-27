@@ -1,6 +1,6 @@
 const https = require('https');
 const ethers = require('ethers');
-const config = require('./config');
+const config = require('./config.js');
 
 ///////////////////////////
 //////// Constants ////////

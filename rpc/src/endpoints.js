@@ -1,5 +1,6 @@
 const fuel = require('./fuel.js');
-const config = require('./config');
+const config = require('./config.js');
+const tl = require('./translator.js');
 
 //TODO: could write more specific queries for getting things like tx count in a block
 
@@ -12,12 +13,23 @@ async function eth_protocolVersion() {
 }
 
 async function eth_chainId() {
-	return config.CHAIN_ID;
+	return config.FUEL_CHAIN_ID;
 }
 	
 async function eth_gasPrice() {
-	//TODO: maybe grab the latest 10 blocks or so and get the average baseFeePerGas accross them
-	return "0x1dfd14000";
+	// Get the latest 10 blocks from the fuel module
+	const latestBlocks = await fuel.getLatestBlocks(10, true);
+
+	// Calculate the average gas price from the latest blocks
+	var totalGasPrice = 0;
+	for (let i=0; i<latestBlocks.length; i++) {
+		const gasPrice = parseInt(latestBlocks[i].baseFeePerGas, 16);
+		totalGasPrice += gasPrice;
+	}
+
+	// Calculate the average gas price
+	const averageGasPrice = tl.toHexString(floor(totalGasPrice / latestBlocks.length));
+	return averageGasPrice;
 }
 
 async function eth_blockNumber() {
@@ -25,10 +37,21 @@ async function eth_blockNumber() {
 }
 
 async function eth_getBalance(address, block) {
-	//"block" could be hex, "earliest", "latest", "safe", "finalized", "pending"
-	//TODO: fuels graphql only allows searching for current balance ("latest", "safe", "finalized", "pending") 
-	//      or if block number given is only like no more than 10 blocks behind
-	return "0x0234c8a3397aab58";
+	if(block == "latest" || block == "safe" || block == "finalized" || block == "pending") {
+		return fuel.fuel_getBalance(address, config.FUEL_BASE_ASSET_ID);
+	} else if(block == "earliest") {
+		return 0;
+	}
+
+	// Return the latest balance if the block number given is within 10 blocks of the latest block
+	const margin = 10;
+	const latestBlockNumber = await fuel.blockNumber();
+	if(tl.toNumber(block) > (tl.toNumber(latestBlockNumber) - margin)) {
+		return fuel.fuel_getBalance(address, config.FUEL_BASE_ASSET_ID);
+	}
+
+	//TODO: this should be an error reporting that we don't support historical records of balances
+	return 0;
 }
 
 async function eth_getTransactionCount(address, block) {
@@ -42,14 +65,13 @@ async function eth_getTransactionCount(address, block) {
 }
 
 async function eth_getBlockTransactionCountByHash(blockHash) {
-	//TODO: see eth_getBlockByHash
-	return "0xb";
+	const fuelBlock = await eth_getBlockByHash(blockHash, false);
+	return tl.toHexString(fuelBlock.transactions.length);
 }
 
 async function eth_getBlockTransactionCountByNumber(block) {
-	//"block" could be hex, "earliest", "latest", "safe", "finalized", "pending"
-	//TODO: see eth_getBlockByNumber
-	return "0xa";
+	const fuelBlock = await eth_getBlockByNumber(block, false);
+	return tl.toHexString(fuelBlock.transactions.length);
 }
 
 async function eth_sendRawTransaction(rawTx) {
@@ -89,13 +111,13 @@ async function eth_getTransactionByHash(txHash) {
 }
 
 async function eth_getTransactionByBlockHashAndIndex(blockHash, index) {
-	//TODO: first fetch block to get txHash
-	return {};
+	const fuelBlock = await eth_getBlockByHash(blockHash, true);
+	return fuelBlock.transactions[index];
 }
 
 async function eth_getTransactionByBlockNumberAndIndex(block, index) {
-	//TODO: first fetch block to get txHash
-	return {};
+	const fuelBlock = await eth_getBlockByNumber(block, true);
+	return fuelBlock.transactions[index];
 }
 
 
