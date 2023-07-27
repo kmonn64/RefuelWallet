@@ -1,7 +1,7 @@
 const https = require('https');
 const ethers = require('ethers');
-const config = require('./config');
-const tl = require('./translator');
+const config = require('./config.js');
+const tl = require('./translator.js');
 
 ///////////////////////////
 //////// Constants ////////
@@ -183,22 +183,20 @@ async function fuel_getTransactionByHash(txHash) {
 	return tl.fuelToEthTx(result.data.transaction, result.data.transaction.status.block);
 }
 
-
-
-
-
-
-
-async function fuel_balanceTest(address, assetId) {
+async function fuel_getBalance(address, assetId) {
 	//this is a test query to get the balance of an address
 	let query = `
-	`;
+	query Balance($owner: Address!, $assetId: AssetId!) {
+		balance(owner: $owner, assetId: $assetId) {
+		  amount
+		}
+	  }`;
 	let variables = {
-		address: tl.toFuelAddress(address),
-		assetId: config.FUEL_BASE_ASSET_ID //test
+		owner: tl.toFuelAddress(address),
+		assetId: assetId
 	};
 	let result = await graphql(query, variables);
-	return 0;
+	return tl.toHexString(result.data.balance.amount);
 }
 
 
@@ -245,5 +243,6 @@ module.exports = {
 	getBlockByNumber: fuel_getBlockByNumber,
 	getBlockByHash: fuel_getBlockByHash,
 	getLatestBlocks: fuel_getLatestBlocks,
-	getTransactionByHash: fuel_getTransactionByHash
+	getTransactionByHash: fuel_getTransactionByHash,
+	fuel_getBalance: fuel_getBalance
 };
