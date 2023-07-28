@@ -19,7 +19,6 @@ function fuelToEthBlock(fuelBlock, fullTransactions) {
 	//TODO: baseFeePerGas might be better estimated via a rolling average
 
 	//calculate gas usage values
-	let gasPrice = 0;
 	let gasUsed = 0;
 	let count = 0;
 	for(let i=0; i<fuelBlock.transactions.length; i++) {
@@ -30,11 +29,9 @@ function fuelToEthBlock(fuelBlock, fullTransactions) {
 					break;
 				}
 			}
-			gasPrice += toNumber(fuelBlock.transactions[i].gasPrice);
 			count++;
 		}
 	}
-	if(count > 0) gasPrice = Math.ceil(gasPrice / count);
 	
 	//fill in transactions
 	let transactions = [];
@@ -47,7 +44,7 @@ function fuelToEthBlock(fuelBlock, fullTransactions) {
 	}
 	
 	return {
-		"baseFeePerGas": toHexString(gasPrice), //ex. "0xc"
+		"baseFeePerGas": "0x0",
 		"difficulty": "0x0",
 		"extraData": "0x",
 		"gasLimit": config.BLOCK_GAS_LIMIT,
@@ -138,7 +135,7 @@ function fuelToEthTx(fuelTx, fuelBlock) {
 		"hash": fuelTx.id, //ex. "0x88df016429689c079f3b2f6ad39fa052532c56795b733da78a91ebe6a713944b"
 		"input": cachedDetails.input,
 		"maxFeePerGas": toHexString(gasPrice), //ex. "0x6a71606ce"
-		"maxPriorityFeePerGas":"0x0",
+		"maxPriorityFeePerGas": toHexString(gasPrice), //ex. "0x6a71606ce"
 		"nonce": cachedDetails.nonce,
 		"to": cachedDetails.to,
 		"type": "0x2",

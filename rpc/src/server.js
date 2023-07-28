@@ -49,6 +49,10 @@ app.post('*', async (req, res) => {
 		} else if(data.method == 'eth_chainId') {
 			returnResponse(response, res, await eth.chainId());
 			
+		} else if(data.method == 'eth_feeHistory') {
+			let params = validateParams(response, res, data.params, [pt_integer, pt_block_int, pt_integer_array]);
+			if(params) returnResponse(response, res, await eth.feeHistory(params[0], params[1], params[2]));
+			
 		} else if(data.method == 'eth_mining') {
 			returnResponse(response, res, false);
 			
@@ -106,12 +110,12 @@ app.post('*', async (req, res) => {
 			if(params) returnResponse(response, res, await eth.sendRawTransaction(params[0]));
 			
 		} else if(data.method == 'eth_call') {
-			let params = validateParams(response, res, data.params, [pt_tx, pt_block]);
-			if(params) returnResponse(response, res, await eth.call(params[0], params[1]));
+			let params = validateParams(response, res, data.params, [pt_tx]);
+			if(params) returnResponse(response, res, await eth.call(params[0]));
 			
 		} else if(data.method == 'eth_estimateGas') {
-			let params = validateParams(response, res, data.params, [pt_tx, pt_block]);
-			if(params) returnResponse(response, res, await eth.estimateGas(params[0], params[1]));
+			let params = validateParams(response, res, data.params, [pt_tx]);
+			if(params) returnResponse(response, res, await eth.estimateGas(params[0]));
 			
 		} else if(data.method == 'eth_getBlockByHash') {
 			let params = validateParams(response, res, data.params, [pt_hash, pt_bool]);
@@ -210,11 +214,13 @@ function returnError(jsonRes, postRes, methodName) {
 // Parse parameters
 const pt_address = 0;
 const pt_block = 1;
-const pt_bytes = 2;
-const pt_hash = 3;
-const pt_tx = 4;
-const pt_bool = 5;
-const pt_integer = 6;
+const pt_block_int = 2;
+const pt_bytes = 3;
+const pt_hash = 4;
+const pt_tx = 5;
+const pt_bool = 6;
+const pt_integer = 7;
+const pt_integer_array = 8;
 function validateParams(jsonRes, postRes, params, expectations) {
 	sanitizedParams = [];
 	for(let i=0; i<expectations.length; i++) {
@@ -232,6 +238,23 @@ function validateParams(jsonRes, postRes, params, expectations) {
 			} else if(expectations[i] == pt_block) {
 				if(validateHex(item) && item.length <= 66) {
 					sanitizedParams[i] = item.toLowerCase();
+					continue;
+				} else if(item == "earliest" || item == "latest" || item == "safe" || item == "finalized" || item == "pending") {
+					sanitizedParams[i] = item;
+					continue;
+				}
+				console.log("[error] unknown value for block:");
+				console.log(item);
+				
+			} else if(expectations[i] == pt_block_int) {
+				if(Number.isInteger(item)) {
+					sanitizedParams[i] = item;
+					continue;
+				} else if(validateHex(item) && !isNaN(parseInt(item, 16))) {
+					sanitizedParams[i] = parseInt(item, 16);
+					continue;
+				} else if(!isNaN(parseInt(item))) {
+					sanitizedParams[i] = parseInt(item);
 					continue;
 				} else if(item == "earliest" || item == "latest" || item == "safe" || item == "finalized" || item == "pending") {
 					sanitizedParams[i] = item;
@@ -290,6 +313,31 @@ function validateParams(jsonRes, postRes, params, expectations) {
 				console.log("[error] unknown value for integer:");
 				console.log(item);
 				
+			} else if(expectations[i] == pt_integer_array) {
+				if(Array.isArray(item)) {
+					let sanitizedArray = [];
+					for(let j=0; j<item.length; j++) {
+						if(Number.isInteger(item[j])) {
+							sanitizedArray.push(item[j]);
+							continue;
+						} else if(validateHex(item[j]) && !isNaN(parseInt(item[j], 16))) {
+							sanitizedArray.push(parseInt(item[j], 16));
+							continue;
+						} else if(!isNaN(parseInt(item[j]))) {
+							sanitizedArray.push(parseInt(item[j]));
+							continue;
+						}
+						console.log("[error] unknown value in integer array:");
+						console.log(item[j]);
+					}
+					if(sanitizedArray.length == item.length) {
+						sanitizedParams[i] = sanitizedArray;
+						continue;
+					}
+				} else {
+					console.log("[error] unknown value for integer array:");
+					console.log(item[j]);
+				}
 			}
 		}
 

@@ -15,21 +15,75 @@ async function eth_protocolVersion() {
 async function eth_chainId() {
 	return config.FUEL_CHAIN_ID;
 }
-	
-async function eth_gasPrice() {
-	// Get the latest 10 blocks from the fuel module
-	const latestBlocks = await fuel.getLatestBlocks(10, true);
 
-	// Calculate the average gas price from the latest blocks
-	var totalGasPrice = 0;
-	for (let i=0; i<latestBlocks.length; i++) {
-		const gasPrice = parseInt(latestBlocks[i].baseFeePerGas, 16);
-		totalGasPrice += gasPrice;
+async function eth_feeHistory(blockCount, newestBlock, percentileValues) {
+	// Only allow up to 1024 blocks as the spec defines
+	if(blockCount > 1024) blockCount = 1024;
+
+	// Fetch fuel blocks to estimate fee per gas
+	let afterBlock = 0;
+	if(newestBlock == "latest" || newestBlock == "safe" || newestBlock == "finalized" || newestBlock == "pending") {
+		const latestBlock = tl.toNumber(await fuel.blockNumber());
+		afterBlock = latestBlock - blockCount;
+	} else if(newestBlock != "earliest") {
+		if(blockCount > newestBlock) blockCount = newestBlock;
+		afterBlock = newestBlock - blockCount;
+	}
+	const fuelBlocks = await fuel.getBlocks(afterBlock, blockCount, true);
+
+	// Pretend all fees are being paid as priority fees
+	let baseFeePerGas = [];
+	for(let i=0; i<blockCount + 1; i++) {
+		baseFeePerGas.push("0x0");
 	}
 
-	// Calculate the average gas price
-	const averageGasPrice = tl.toHexString(Math.floor(totalGasPrice / latestBlocks.length));
-	return averageGasPrice;
+	// Pretend that blocks are always half full
+	let gasUsedRatio = [];
+	for(let i=0; i<blockCount; i++) {
+		gasUsedRatio.push(0.5);
+	}
+
+	// Start building the return
+	let result = {
+        "baseFeePerGas": baseFeePerGas,
+        "gasUsedRatio": gasUsedRatio,
+        "oldestBlock": tl.toHexString(afterBlock + 1)
+    }
+
+	// Add reward data if percentiles were provided
+	if(percentileValues) {
+		
+		//TODO: this logic needs to be removed and replaced with the commented lines below
+		//NOTE: metamask sets a minimum 1.5gwei gas price so we can't go lower than that
+		//NOTE: what metamask shows is the gas price * the estimated gas which right now always returns 2100 (see other TODO in eth_estimateGas)
+		let makeMetaMaskSay = 0.0001; //0.0000315
+		makeMetaMaskSay = makeMetaMaskSay * 47619047619047.62; //(1000000000000000000 / 21000 = 476190476190476190476.19)
+		makeMetaMaskSay = makeMetaMaskSay / 0.97; //NOTE: metamask sets the suggested midrange price to be 97% of what we output here
+		let priorityFeePerGas = "0x" + Math.floor(makeMetaMaskSay).toString(16);
+
+		// Report gas fees paid
+		let reward = [];
+		for(let i=0; i<blockCount; i++) {
+			
+			//TODO: use the following lines for better gas estimation once we more accuratley report back in eth_estimateGas
+			//let priorityFeePerGas = tl.to18Decimals("0x1"); //default to 1 gwei
+			//if(i < fuelBlocks.length) priorityFeePerGas = tl.to18Decimals(averageGasForTransactions(fuelBlocks[i].transactions));
+			
+			let list = [];
+			for(let i=0; i<percentileValues.length; i++) list.push(priorityFeePerGas);
+			reward.push(list);
+		}
+
+		result["reward"] = reward;
+	}
+
+	return result;
+}
+
+async function eth_gasPrice() {
+	// Get the average gas from the latest 10 blocks
+	const latestBlocks = await fuel.getLatestBlocks(10, true);
+	return averageGasPrice = tl.to18Decimals(averageGasForBlocks(latestBlocks));
 }
 
 async function eth_blockNumber() {
@@ -38,7 +92,7 @@ async function eth_blockNumber() {
 
 async function eth_getBalance(address, block) {
 	if(block == "latest" || block == "safe" || block == "finalized" || block == "pending") {
-		return tl.to18Decimals(await fuel.fuel_getBalance(address, config.FUEL_BASE_ASSET_ID));
+		return tl.to18Decimals(await fuel.getBalance(address, config.FUEL_BASE_ASSET_ID));
 	} else if(block == "earliest") {
 		return "0x0";
 	}
@@ -47,7 +101,7 @@ async function eth_getBalance(address, block) {
 	const margin = 10;
 	const latestBlockNumber = await fuel.blockNumber();
 	if(tl.toNumber(block) > (tl.toNumber(latestBlockNumber) - margin)) {
-		return tl.to18Decimals(await fuel.fuel_getBalance(address, config.FUEL_BASE_ASSET_ID));
+		return tl.to18Decimals(await fuel.getBalance(address, config.FUEL_BASE_ASSET_ID));
 	}
 
 	//TODO: this should be an error reporting that we don't support historical records of balances
@@ -79,14 +133,15 @@ async function eth_sendRawTransaction(rawTx) {
 	return "0xe670ec64341771606e55d6b4ca35a1a6b75ee3d5145a99d05921026d1527331"; //tx hash
 }
 
-async function eth_call(tx, block) {
-	//"block" could be hex, "earliest", "latest", "safe", "finalized", "pending"
+async function eth_call(tx) {
 	//TODO: will need to emulate this for ERC20 contract reads (see ERC20_FUNCTION_SIGNATURES)
 	return "0x";
 }
 
-async function eth_estimateGas(tx, block) {
-	//"block" could be hex, "earliest", "latest", "safe", "finalized", "pending"
+async function eth_estimateGas(tx) {
+	// Is this a simple ETH transfer?
+	if(!tx || !tx.data || tx.data == "0x") return "0x5208"; //21000
+
 	//TODO: if tx is supported transfer, estimate gas, else return protocol block/tx gas limit
 	return "0x5208";
 }
@@ -120,12 +175,37 @@ async function eth_getTransactionByBlockNumberAndIndex(block, index) {
 	return fuelBlock.transactions[index];
 }
 
+//////////////////////////////////
+//////// Helper Functions ////////
+//////////////////////////////////
+
+function averageGasForBlocks(blocks) {
+	if(blocks.length == 0) return 0;
+
+	let total = 0;
+	for(let i=0; i<blocks.length; i++) {
+		total += averageGasForTransactions(blocks[i].transactions);
+	}
+	return Math.floor(total / blocks.length);
+}
+
+function averageGasForTransactions(transactions) {
+	if(transactions.length == 0) return 0;
+
+	let total = 0;
+	for(let i=0; i<transactions.length; i++) {
+		total += tl.toNumber(transactions[i].gasPrice);
+	}
+	return Math.floor(total / transactions.length);
+}
+
 
 /////////////////////////////////
 module.exports = {
 	eth: {
 		protocolVersion: eth_protocolVersion,
 		chainId: eth_chainId,
+		feeHistory: eth_feeHistory,
 		gasPrice: eth_gasPrice,
 		blockNumber: eth_blockNumber,
 		getBalance: eth_getBalance,

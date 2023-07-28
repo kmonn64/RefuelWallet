@@ -1,7 +1,7 @@
 const http = require('http');
 
 //make test calls here
-rpc('{"id":1,"jsonrpc":"2.0","method":"eth_chainId","params":[]}');
+//rpc('{"id":1,"jsonrpc":"2.0","method":"eth_chainId","params":[]}');
 //rpc('{"id":1,"jsonrpc":"2.0","method":"eth_blockNumber","params":[]}');
 //rpc('{"id":1,"jsonrpc":"2.0","method":"eth_getBlockByNumber","params":["0x167eb1", false]}');
 //rpc('{"id":1,"jsonrpc":"2.0","method":"eth_getBlockByNumber","params":["latest", false]}');
@@ -12,6 +12,9 @@ rpc('{"id":1,"jsonrpc":"2.0","method":"eth_chainId","params":[]}');
 
 //rpc('{"id":1,"jsonrpc":"2.0","method":"eth_getTransactionByBlockHashAndIndex","params":["0x0c491f590abaab55aa035525e74cb05d282c1708ef956348f905da423f11646c", "0x1"]}');
 //rpc('{"id":1,"jsonrpc":"2.0","method":"eth_getTransactionByBlockNumberAndIndex","params":["latest", "0x1"]}');
+
+//rpc('{"id":1,"jsonrpc":"2.0","method":"eth_gasPrice","params":[]}');
+rpc('{"id":1,"jsonrpc":"2.0","method":"eth_estimateGas","params":["0x5", "latest", [20,30]]}');
 
 
 

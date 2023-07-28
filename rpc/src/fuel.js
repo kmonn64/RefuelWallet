@@ -31,7 +31,8 @@ async function fuel_blockNumber() {
 		last: 1
 	};
 	let result = await graphql(query, variables);
-	return tl.toHexString(result.data.blocks.nodes[0].header.height);
+	//TODO: investigate why this somethimes reports blocks that don't actually exist yet
+	return tl.toHexString(tl.toNumber(result.data.blocks.nodes[0].header.height) - 1);
 }
 
 async function fuel_getBlockByNumber(number, fullTransactions, skipRetry) {
@@ -61,6 +62,7 @@ async function fuel_getBlockByNumber(number, fullTransactions, skipRetry) {
 	};
 	let result = await graphql(query, variables);
 	if(!skipRetry && !(result || result.data || result.data.block)) {
+		await await sleep(1000);
 		return await fuel_getBlockByNumber(number, fullTransactions, true);
 	}
 	//TODO: handle null result
@@ -99,7 +101,7 @@ async function fuel_getBlockByHash(blockHash, fullTransactions) {
 
 async function fuel_getLatestBlocks(count, fullTransactions) {
 	let query = `
-	query LatestBlock($last: Int) {
+	query LatestBlocks($last: Int) {
 	  blocks(last: $last) {
 		nodes {
 		  header {
@@ -123,6 +125,42 @@ async function fuel_getLatestBlocks(count, fullTransactions) {
 	}`;
 	let variables = {
 		"last": tl.toNumber(count)
+	};
+	let result = await graphql(query, variables);
+	let blocks = [];
+	for(let i=0; i<result.data.blocks.nodes.length; i++) {
+		blocks.push(tl.fuelToEthBlock(result.data.blocks.nodes[i], fullTransactions));
+	}
+	return blocks;
+}
+
+async function fuel_getBlocks(after, count, fullTransactions) {
+	let query = `
+	query Blocks($after: String, $first: Int) {
+	  blocks(after: $after, first: $first) {
+		nodes {
+		  header {
+			id
+			transactionsRoot
+			height
+			prevRoot
+			time
+		  }
+		  transactions {
+			id
+			gasLimit
+			gasPrice
+			receipts {
+			  receiptType
+			  gasUsed
+			}
+		  }
+		}
+	  }
+	}`;
+	let variables = {
+		"after": "" + tl.toNumber(after),
+		"first": tl.toNumber(count)
 	};
 	let result = await graphql(query, variables);
 	let blocks = [];
@@ -231,7 +269,12 @@ async function graphql(query, variables) {
 				json += chunk;
 			});
 			response.on('end', () => {
-				resolve(JSON.parse(json));
+				try {
+					resolve(JSON.parse(json));
+				} catch(e) {
+					console.log('[error] invalid response from graphql');
+					console.log(json);
+				}
 			});
 		});
 		graphql.write(dataStr);
@@ -239,6 +282,9 @@ async function graphql(query, variables) {
 	});
 }
 
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
 
 /////////////////////////////////
 module.exports = {
@@ -246,6 +292,7 @@ module.exports = {
 	getBlockByNumber: fuel_getBlockByNumber,
 	getBlockByHash: fuel_getBlockByHash,
 	getLatestBlocks: fuel_getLatestBlocks,
+	getBlocks: fuel_getBlocks,
 	getTransactionByHash: fuel_getTransactionByHash,
-	fuel_getBalance: fuel_getBalance
+	getBalance: fuel_getBalance
 };
