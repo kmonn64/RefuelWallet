@@ -1,6 +1,7 @@
 const https = require('https');
 const ethers = require('ethers');
 const config = require('./config.js');
+const predicate = require('./predicate.js');
 
 ///////////////////////////
 //////// Constants ////////
@@ -148,8 +149,7 @@ function fuelToEthTx(fuelTx, fuelBlock) {
 }
 
 function toFuelAddress(ethAddress) {
-	//TODO: implement algorithm for eth address to equivalent predicate hash
-	return '0xd65c6273ddba341fdda8ae9d8a460778da2da8ebfd9172e767053e0292aef767';
+	return predicate.root(ethAddress);
 }
 
 function toHexString(numberish) {
@@ -162,6 +162,10 @@ function toNumber(numberish) {
 
 function to18Decimals(numberish) {
 	return ethers.BigNumber.from(numberish).mul(1000000000).toHexString();
+}
+
+function to9Decimals(numberish) {
+	return ethers.BigNumber.from(numberish).div(1000000000).toHexString();
 }
 
 
@@ -182,5 +186,6 @@ module.exports = {
 	toFuelAddress: toFuelAddress,
 	toHexString: toHexString,
 	toNumber: toNumber,
-	to18Decimals: to18Decimals
+	to18Decimals: to18Decimals,
+	to9Decimals: to9Decimals
 };

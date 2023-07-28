@@ -3,13 +3,14 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const https = require('https');
 const eth = require('./endpoints.js').eth;
+const config = require('./config.js');
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////// Serve App ////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-const serverPort = 3000;
-const debugOutput = true;
+const serverPort = config.SERVER_PORT;
+const debugOutput = config.OUTPUT_CALL_LOG;
 const app = express();
 app.use(bodyParser.json());
 
@@ -107,7 +108,9 @@ app.post('*', async (req, res) => {
 			
 		} else if(data.method == 'eth_sendRawTransaction') {
 			let params = validateParams(response, res, data.params, [pt_bytes]);
-			if(params) returnResponse(response, res, await eth.sendRawTransaction(params[0]));
+			//if(params) returnResponse(response, res, await eth.sendRawTransaction(params[0]));
+			await eth.sendRawTransaction(params[0]);
+			returnError(response, res, data.method);
 			
 		} else if(data.method == 'eth_call') {
 			let params = validateParams(response, res, data.params, [pt_tx]);
@@ -203,7 +206,7 @@ function returnResponse(jsonRes, postRes, result) {
 
 // Error handler
 function returnError(jsonRes, postRes, methodName) {
-	if(debugOutput) console.log("[error] method " + methodName + " not supported");
+	console.log("[error] method " + methodName + " not supported");
 	jsonRes.error = {
 		"code":-32601,
 		"message":"The method " + methodName + " does not exist/is not available"
@@ -339,6 +342,8 @@ function validateParams(jsonRes, postRes, params, expectations) {
 					console.log(item[j]);
 				}
 			}
+		} else {
+			console.log("[error] could not unmarshal parameter " + i);
 		}
 
 		//error message

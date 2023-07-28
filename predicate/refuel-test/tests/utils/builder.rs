@@ -17,9 +17,11 @@ pub fn compute_refuel_account(public_address: [u8; 20]) -> (Bech32Address, Vec<u
     let mut predicate_bytecode = std::fs::read(PREDICATE_BINARY).unwrap();
 
     // pad with zeros to the nearest 8 bytes (u64)
-    let to_pad = predicate_bytecode.len() % 8;
-    let zeros = vec![0u8; to_pad];
-    predicate_bytecode.extend(zeros);
+    let to_pad = 8 - (predicate_bytecode.len() % 8);
+    if to_pad < 8 {
+        let zeros = vec![0u8; to_pad];
+        predicate_bytecode.extend(zeros);
+    }
 
     // add the public address to the end of the predicate
     predicate_bytecode.extend(vec![0u8; 12]);

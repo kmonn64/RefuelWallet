@@ -1,6 +1,8 @@
 const https = require('https');
 const ethers = require('ethers');
+const fuels = require('fuels');
 const config = require('./config.js');
+const predicate = require('./predicate.js');
 const tl = require('./translator.js');
 
 ///////////////////////////
@@ -225,7 +227,6 @@ async function fuel_getTransactionByHash(txHash) {
 }
 
 async function fuel_getBalance(address, assetId) {
-	//this is a test query to get the balance of an address
 	let query = `
 	query Balance($owner: Address!, $assetId: AssetId!) {
 		balance(owner: $owner, assetId: $assetId) {
@@ -237,7 +238,118 @@ async function fuel_getBalance(address, assetId) {
 		assetId: assetId
 	};
 	let result = await graphql(query, variables);
+	//TODO: handle null result
 	return tl.toHexString(result.data.balance.amount);
+}
+
+async function fuel_getCoinsToSpend(owner, assetId, amount) {
+	let query = `
+	query CoinsToSpend($owner: Address!, $queryPerAsset: [SpendQueryElementInput!]!) {
+		resourcesToSpend(owner: $owner, queryPerAsset: $queryPerAsset) {
+		  ... on Coin {
+			amount
+			assetId
+			utxoId
+			blockCreated
+		  }
+		}
+	  }`;
+	let variables = {
+		owner: owner,
+		queryPerAsset: [{
+			amount: "" + tl.toNumber(amount),
+			assetId: assetId
+		}]
+	};
+	let result = await graphql(query, variables);
+	//TODO: handle null result
+	return result.data.resourcesToSpend[0];
+}
+
+/////////////////////////
+//////// Actions ////////
+/////////////////////////
+
+// Generates a raw fuel transaction from the signed EVM transaction
+async function submitRefuelTransaction(rawSignedTx) {
+	let txObject = null;
+
+	//TODO: add support for other transaction types
+	if(rawSignedTx.substr(0,4) == '0x02') {
+		const txDecode = ethers.utils.RLP.decode('0x' + rawSignedTx.substr(4));
+		const expandedSig = {
+			r: txDecode[10],
+			s: txDecode[11],
+			v: ethers.BigNumber.from(txDecode[9].padEnd(4, "0")).add(27).toNumber(),
+		};
+		const signature = ethers.utils.joinSignature(expandedSig);
+		const rawTx = '0x02' + ethers.utils.RLP.encode(JSON.parse(JSON.stringify(txDecode)).slice(0, -3)).substr(2);
+		const msgBytes = ethers.utils.arrayify(ethers.utils.keccak256(rawTx));
+		const from = ethers.utils.recoverAddress(msgBytes, signature).toLowerCase();
+
+		txObject = {
+			rawSignedTx: rawSignedTx,
+			from: from,
+			chainId: txDecode[0].toLowerCase(),
+			nonce: txDecode[1].toLowerCase(),
+			maxPriorityFeePerGas: txDecode[2].toLowerCase(),
+			maxFeePerGas: txDecode[3].toLowerCase(),
+			gasLimit: txDecode[4].toLowerCase(),
+			to: txDecode[5].toLowerCase(),
+			value: txDecode[6].toLowerCase(),
+			data: txDecode[7].toLowerCase(),
+			accessList: txDecode[8],
+			v: txDecode[9].toLowerCase(),
+			r: txDecode[10].toLowerCase(),
+			s: txDecode[11].toLowerCase()
+		}
+	}
+
+	if(txObject) {
+		const provider = new fuels.Provider(config.FUEL_NETWORK_URL);
+		const refuelPredicate = new fuels.Predicate(predicate.bytecode(txObject.from), undefined, provider);
+		refuelPredicate.setData(ethers.arrayify(rawSignedTx));
+/*
+{
+  rawSignedTx: '0x02f87783097bc80185011bd4e67985011bd4e67982520894dc8903ca414cbd8b1c13da93d3310d516f686fbf88016345785d8a000080c001a0ca220e371441b35bc55913e5414c20c588651480401fc2b980fbca7005434e86a072ebc6aaeb36a66af1b6fefa9368ce1fe55b2da0ef18d41d02811d1fa01289d9',
+  from: '0x17320E6E3904206703B4eE4617AAbe61402988f4',
+  chainId: '0x097bc8',
+  nonce: '0x01',
+  maxPriorityFeePerGas: '0x011bd4e679',
+  maxFeePerGas: '0x011bd4e679',
+  gasLimit: '0x5208',
+  to: '0xdc8903ca414cbd8b1c13da93d3310d516f686fbf',
+  value: '0x016345785d8a0000',
+  data: '0x',
+  accessList: [],
+  v: '0x01',
+  r: '0xca220e371441b35bc55913e5414c20c588651480401fc2b980fbca7005434e86',
+  s: '0x72ebc6aaeb36a66af1b6fefa9368ce1fe55b2da0ef18d41d02811d1fa01289d9'
+}
+*/
+
+		//TODO: add support for ERC20 transfers and other conversions
+		if(txObject.data == "0x") {
+			let coins = await refuelPredicate.getCoins(config.FUEL_BASE_ASSET_ID);
+			console.log("coins")
+			console.log(coins)
+
+
+
+
+
+
+
+
+
+
+			//TODO
+
+		}
+	}
+
+	//TODO: return a more helpful tx hash
+	return "0xe670ec64341771606e55d6b4ca35a1a6b75ee3d5145a99d05921026d1527331";
 }
 
 
@@ -294,5 +406,7 @@ module.exports = {
 	getLatestBlocks: fuel_getLatestBlocks,
 	getBlocks: fuel_getBlocks,
 	getTransactionByHash: fuel_getTransactionByHash,
-	getBalance: fuel_getBalance
+	getBalance: fuel_getBalance,
+	getCoinsToSpend: fuel_getCoinsToSpend,
+	submitRefuelTransaction: submitRefuelTransaction
 };

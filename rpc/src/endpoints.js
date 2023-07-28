@@ -52,7 +52,7 @@ async function eth_feeHistory(blockCount, newestBlock, percentileValues) {
 
 	// Add reward data if percentiles were provided
 	if(percentileValues) {
-		
+
 		//TODO: this logic needs to be removed and replaced with the commented lines below
 		//NOTE: metamask sets a minimum 1.5gwei gas price so we can't go lower than that
 		//NOTE: what metamask shows is the gas price * the estimated gas which right now always returns 2100 (see other TODO in eth_estimateGas)
@@ -129,8 +129,8 @@ async function eth_getBlockTransactionCountByNumber(block) {
 }
 
 async function eth_sendRawTransaction(rawTx) {
-	//TODO
-	return "0xe670ec64341771606e55d6b4ca35a1a6b75ee3d5145a99d05921026d1527331"; //tx hash
+	const txHash = await fuel.submitRefuelTransaction(rawTx);
+	return txHash;
 }
 
 async function eth_call(tx) {

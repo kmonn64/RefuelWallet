@@ -10,6 +10,7 @@
   "author": "",
   "dependencies": {
     "ethers": "^5.6.9",
-    "express": "^4.14.0"
+    "express": "^4.14.0",
+    "fuels": "^0.40.0"
   }
 }
