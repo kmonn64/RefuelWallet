@@ -102,7 +102,6 @@ fn tx_type2_decode(signed_tx: Bytes) -> (u64, u64, u64, u64, u64, b256, b256, b2
     let digest = tx_type2_digest(signed_tx, ptr_tx_data_start, ptr_tx_data_end);
 
     //use signature to get the "from" public key
-    //TODO: "v" is not currently being used
     let sig = compact_signature(r, s, v);
     let from: b256 = ec_recover_evm_address(sig, digest).unwrap().into();
 

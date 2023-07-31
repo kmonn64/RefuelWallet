@@ -172,7 +172,7 @@ async function fuel_getBlocks(after, count, fullTransactions) {
 	return blocks;
 }
 
-async function fuel_getTransactionByHash(txHash) {
+async function fuel_getTransactionByHash(txHash, asReceipt) {
 	let query = `
 	query TransactionByHash($transactionId: TransactionId!) {
 	  transaction(id: $transactionId) {
@@ -223,6 +223,9 @@ async function fuel_getTransactionByHash(txHash) {
 	};
 	let result = await graphql(query, variables);
 	//TODO: handle null result
+	if(asReceipt) {
+		return tl.fuelToEthTxReceipt(result.data.transaction, result.data.transaction.status.block);
+	}
 	return tl.fuelToEthTx(result.data.transaction, result.data.transaction.status.block);
 }
 
@@ -307,49 +310,60 @@ async function submitRefuelTransaction(rawSignedTx) {
 
 	if(txObject) {
 		const provider = new fuels.Provider(config.FUEL_NETWORK_URL);
-		const refuelPredicate = new fuels.Predicate(predicate.bytecode(txObject.from), undefined, provider);
-		refuelPredicate.setData(ethers.arrayify(rawSignedTx));
-/*
-{
-  rawSignedTx: '0x02f87783097bc80185011bd4e67985011bd4e67982520894dc8903ca414cbd8b1c13da93d3310d516f686fbf88016345785d8a000080c001a0ca220e371441b35bc55913e5414c20c588651480401fc2b980fbca7005434e86a072ebc6aaeb36a66af1b6fefa9368ce1fe55b2da0ef18d41d02811d1fa01289d9',
-  from: '0x17320E6E3904206703B4eE4617AAbe61402988f4',
-  chainId: '0x097bc8',
-  nonce: '0x01',
-  maxPriorityFeePerGas: '0x011bd4e679',
-  maxFeePerGas: '0x011bd4e679',
-  gasLimit: '0x5208',
-  to: '0xdc8903ca414cbd8b1c13da93d3310d516f686fbf',
-  value: '0x016345785d8a0000',
-  data: '0x',
-  accessList: [],
-  v: '0x01',
-  r: '0xca220e371441b35bc55913e5414c20c588651480401fc2b980fbca7005434e86',
-  s: '0x72ebc6aaeb36a66af1b6fefa9368ce1fe55b2da0ef18d41d02811d1fa01289d9'
-}
-*/
+		const refuelPredicate = new fuels.Predicate(predicate.bytecode(txObject.from), predicate.abi(), provider);
+
+		//TODO: figure out the issue with this call instead of manualy encoding [refuelPredicate.setData(fuels.arrayify(rawSignedTx));]
+		refuelPredicate.predicateData = encodeBytes(fuels.arrayify(rawSignedTx));
 
 		//TODO: add support for ERC20 transfers and other conversions
+
+		// simple ETH transfer
 		if(txObject.data == "0x") {
-			let coins = await refuelPredicate.getCoins(config.FUEL_BASE_ASSET_ID);
-			console.log("coins")
-			console.log(coins)
+			const gasLimit = 1000000; //TODO: use txObject.gasLimit
+			const gasPrice = 1; //TODO: use txObject.maxPriorityFeePerGas
+			const gasNeeded = gasLimit * gasPrice;
+			const adjustedValue = tl.to9Decimals(txObject.value);
 
+			// query for available coins to use
+			let coins = await refuelPredicate.getResourcesToSpend([[tl.toHexString(tl.toNumber(adjustedValue) + gasNeeded), config.FUEL_BASE_ASSET_ID]]);
 
+			// build the transaction
+			const transaction = new fuels.ScriptTransactionRequest();
+			transaction.gasLimit = gasLimit;
+			transaction.gasPrice = gasPrice;
+			for(let i=0; i<coins.length; i++) {
+				transaction.inputs.push({
+					type: fuels.InputType.Coin,
+					id: coins[i].id,
+					owner: refuelPredicate.address.toHexString(),
+					amount: coins[i].amount,
+					assetId: coins[i].assetId,
+					txPointer: fuels.ZeroBytes32,
+					witnessIndex: 0,
+					predicate: refuelPredicate.bytes,
+					predicateData: refuelPredicate.predicateData
+				});
+			}
+			transaction.outputs.push({
+				type: fuels.OutputType.Coin,
+				to: tl.toFuelAddress(txObject.to),
+				amount: adjustedValue,
+				assetId: config.FUEL_BASE_ASSET_ID,
+			});
+			transaction.outputs.push({
+				type: fuels.OutputType.Change,
+				to: refuelPredicate.address.toHexString(),
+				assetId: config.FUEL_BASE_ASSET_ID,
+			});
+			transaction.witnesses.push('0x'); //TODO: is this necessary?
 
-
-
-
-
-
-
-
-			//TODO
-
+			// send the transaction
+			let result = await provider.sendTransaction(transaction);
+			return result.id;
 		}
 	}
 
-	//TODO: return a more helpful tx hash
-	return "0xe670ec64341771606e55d6b4ca35a1a6b75ee3d5145a99d05921026d1527331";
+	return null;
 }
 
 
@@ -392,6 +406,35 @@ async function graphql(query, variables) {
 		graphql.write(dataStr);
 		graphql.end();
 	});
+}
+
+
+///////////////////////////////
+//////// Private Utils ////////
+///////////////////////////////
+
+//TODO: manual abi encoding should not be necessary
+function encodeBytes(bytes) {
+	// pad with zeros to the nearest 8 bytes (u64)
+	let paddedBytes = new Uint8Array(bytes.length);
+	let toPad = 8 - (bytes.length % 8);
+	if(toPad < 8) paddedBytes = new Uint8Array(bytes.length + toPad);
+	paddedBytes.set(bytes);
+
+	// add the encoding to the beginning of the bytes
+	let prefixedPaddedBytes = new Uint8Array(paddedBytes.length + 24);
+	prefixedPaddedBytes.set(paddedBytes, 24);
+	prefixedPaddedBytes.set(numberTo64bitUint8Array(24), 0); // offset
+	prefixedPaddedBytes.set(numberTo64bitUint8Array(paddedBytes.length), 8); // padded length
+	prefixedPaddedBytes.set(numberTo64bitUint8Array(bytes.length), 16); // actual length
+
+	return prefixedPaddedBytes;
+}
+function numberTo64bitUint8Array(number) {
+	const buffer = new ArrayBuffer(8);
+	const view = new DataView(buffer);
+	view.setUint32(4, number, false);
+	return new Uint8Array(buffer);
 }
 
 function sleep(ms) {

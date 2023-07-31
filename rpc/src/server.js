@@ -23,10 +23,7 @@ app.get('/test', function (req, res) {
 // Forward POSTs
 app.post('*', async (req, res) => {
     let data = req.body;
-    let dataStr = JSON.stringify(data); 
-	
-	const protocolVersion = "0x41";
-	const chainId = "0x97BC8"; //621512
+    let dataStr = JSON.stringify(data);
 	
 	if(data.jsonrpc == "2.0") {
 		let response = {
@@ -108,9 +105,7 @@ app.post('*', async (req, res) => {
 			
 		} else if(data.method == 'eth_sendRawTransaction') {
 			let params = validateParams(response, res, data.params, [pt_bytes]);
-			//if(params) returnResponse(response, res, await eth.sendRawTransaction(params[0]));
-			await eth.sendRawTransaction(params[0]);
-			returnError(response, res, data.method);
+			if(params) returnResponse(response, res, await eth.sendRawTransaction(params[0]));
 			
 		} else if(data.method == 'eth_call') {
 			let params = validateParams(response, res, data.params, [pt_tx]);
@@ -141,7 +136,8 @@ app.post('*', async (req, res) => {
 			if(params) returnResponse(response, res, await eth.getTransactionByBlockNumberAndIndex(params[0], params[1]));
 			
 		} else if(data.method == 'eth_getTransactionReceipt') {
-			returnError(response, res, data.method);
+			let params = validateParams(response, res, data.params, [pt_hash]);
+			if(params) returnResponse(response, res, await eth.getTransactionReceipt(params[0]));
 			
 		} else if(data.method == 'eth_getUncleByBlockHashAndIndex') {
 			returnResponse(response, res, null);
@@ -199,7 +195,16 @@ app.post('*', async (req, res) => {
 
 // Response handler
 function returnResponse(jsonRes, postRes, result) {
-	//TODO: need to handle if result is null
+	if(result == null) {
+		// failure case
+		console.log("[error] unexpected error occured");
+		jsonRes.error = {
+			"code":-32601,
+			"message":"Unexpected error occured"
+		};
+		postRes.send(JSON.stringify(jsonRes));
+	}
+
 	jsonRes.result = result;
 	postRes.send(JSON.stringify(jsonRes));
 }

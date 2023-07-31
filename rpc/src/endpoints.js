@@ -175,6 +175,10 @@ async function eth_getTransactionByBlockNumberAndIndex(block, index) {
 	return fuelBlock.transactions[index];
 }
 
+async function eth_getTransactionReceipt(txHash) {
+	return await fuel.getTransactionByHash(txHash, true);
+}
+
 //////////////////////////////////
 //////// Helper Functions ////////
 //////////////////////////////////
@@ -219,6 +223,7 @@ module.exports = {
 		getBlockByNumber: eth_getBlockByNumber,
 		getTransactionByHash: eth_getTransactionByHash,
 		getTransactionByBlockHashAndIndex: eth_getTransactionByBlockHashAndIndex,
-		getTransactionByBlockNumberAndIndex: eth_getTransactionByBlockNumberAndIndex
+		getTransactionByBlockNumberAndIndex: eth_getTransactionByBlockNumberAndIndex,
+		getTransactionReceipt: eth_getTransactionReceipt
 	}
 };

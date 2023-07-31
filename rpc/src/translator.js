@@ -17,8 +17,6 @@ const EMPTY_ROOT_HASH = "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622
 //////////////////////////////////
 
 function fuelToEthBlock(fuelBlock, fullTransactions) {
-	//TODO: baseFeePerGas might be better estimated via a rolling average
-
 	//calculate gas usage values
 	let gasUsed = 0;
 	let count = 0;
@@ -132,11 +130,11 @@ function fuelToEthTx(fuelTx, fuelBlock) {
 		"chainId": config.FUEL_CHAIN_ID, //ex. "0x1"
 		"from": cachedDetails.from,
 		"gas": toHexString(gasUsed), //ex. "0xc350"
-		"gasPrice": toHexString(gasPrice), //ex. "0x4a817c800"
+		"gasPrice": to18Decimals(gasPrice), //ex. "0x4a817c800"
 		"hash": fuelTx.id, //ex. "0x88df016429689c079f3b2f6ad39fa052532c56795b733da78a91ebe6a713944b"
 		"input": cachedDetails.input,
-		"maxFeePerGas": toHexString(gasPrice), //ex. "0x6a71606ce"
-		"maxPriorityFeePerGas": toHexString(gasPrice), //ex. "0x6a71606ce"
+		"maxFeePerGas": to18Decimals(gasPrice), //ex. "0x6a71606ce"
+		"maxPriorityFeePerGas": to18Decimals(gasPrice), //ex. "0x6a71606ce"
 		"nonce": cachedDetails.nonce,
 		"to": cachedDetails.to,
 		"type": "0x2",
@@ -146,6 +144,78 @@ function fuelToEthTx(fuelTx, fuelBlock) {
 		"r": cachedDetails.r,
 		"s": cachedDetails.s
 	}
+}
+
+function fuelToEthTxReceipt(fuelTx, fuelBlock) {
+	//TODO: look up potentially cached details about certain transactions made during eth_sendRawTransaction
+	let cachedDetails = {
+		"from": EMPTY_ADDRESS,
+		"input": "0x",
+		"nonce": "0x0",
+		"to": EMPTY_ADDRESS,
+		"value": "0x0",
+		"v": "0x25",
+		"r": EMPTY_32BYTES,
+		"s": EMPTY_32BYTES
+	};
+	
+	//determine index
+	let index = 0;
+	for(let i=0; i<fuelBlock.transactions.length; i++) {
+		if(fuelBlock.transactions[i].id.toLowerCase() == fuelTx.id.toLowerCase()) {
+			index = i;
+			break;
+		}
+	}
+	
+	//get gas data
+	let gasUsed = 0;
+	let gasPrice = 0;
+	if(fuelTx.gasPrice) {
+		for(let i=0; i<fuelTx.receipts.length; i++) {
+			if(fuelTx.receipts[i].receiptType == "SCRIPT_RESULT") {
+				gasUsed = toNumber(fuelTx.receipts[i].gasUsed);
+				break;
+			}
+		}
+		gasPrice = toNumber(fuelTx.gasPrice);
+		
+	} else {
+		
+		//use average values for mint transactions (no explicit gas price)
+		let count = 0;
+		for(let i=0; i<fuelBlock.transactions.length; i++) {
+			if(fuelBlock.transactions[i].gasPrice) { //ignore mint transactions
+				for(let j=0; j<fuelBlock.transactions[i].receipts.length; j++) {
+					if(fuelBlock.transactions[i].receipts[j].receiptType == "SCRIPT_RESULT") {
+						gasUsed += toNumber(fuelBlock.transactions[i].receipts[j].gasUsed);
+						break;
+					}
+				}
+				gasPrice += toNumber(fuelBlock.transactions[i].gasPrice);
+				count++;
+			}
+		}
+		if(count > 0) gasUsed = Math.ceil(gasUsed / count);
+		if(count > 0) gasPrice = Math.ceil(gasPrice / count);
+	}
+
+	return {
+		"blockHash": fuelBlock.header.id,
+		"blockNumber": toHexString(fuelBlock.header.height), //ex. "0x5daf3b"
+		"contractAddress": null,
+		"cumulativeGasUsed": toHexString(gasUsed), //ex. "0xa12515"
+		"effectiveGasPrice": to18Decimals(gasPrice), //ex. "0x5a9c688d4"
+		"from": cachedDetails.from,
+		"gasUsed": toHexString(gasUsed), //ex. "0xb4c8",
+		"logs": [],
+		"logsBloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000", // 256 byte bloom filter
+		"status": "0x1", //TODO: determine legitimate status
+		"to": cachedDetails.to,
+		"transactionHash": fuelTx.id.toLowerCase(),
+		"transactionIndex": toHexString(index), //ex. "0x66",
+		"type": "0x2"
+	  }
 }
 
 function toFuelAddress(ethAddress) {
@@ -183,6 +253,7 @@ function toSecondsFromTai64(tai64) {
 module.exports = {
 	fuelToEthBlock: fuelToEthBlock,
 	fuelToEthTx: fuelToEthTx,
+	fuelToEthTxReceipt: fuelToEthTxReceipt,
 	toFuelAddress: toFuelAddress,
 	toHexString: toHexString,
 	toNumber: toNumber,
