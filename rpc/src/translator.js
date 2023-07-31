@@ -70,7 +70,7 @@ function fuelToEthBlock(fuelBlock, fullTransactions) {
 }
 
 function fuelToEthTx(fuelTx, fuelBlock) {
-	//TODO: look up potentially cached details about certain transactions made during eth_sendRawTransaction
+	//TODO: these extra details can be inferred about a transaction by looking at the predicate data on some of the inputs and parsing the raw signed evm tx
 	let cachedDetails = {
 		"from": EMPTY_ADDRESS,
 		"input": "0x",
@@ -147,7 +147,7 @@ function fuelToEthTx(fuelTx, fuelBlock) {
 }
 
 function fuelToEthTxReceipt(fuelTx, fuelBlock) {
-	//TODO: look up potentially cached details about certain transactions made during eth_sendRawTransaction
+	//TODO: these extra details can be inferred about a transaction by looking at the predicate data on some of the inputs and parsing the raw signed evm tx
 	let cachedDetails = {
 		"from": EMPTY_ADDRESS,
 		"input": "0x",
