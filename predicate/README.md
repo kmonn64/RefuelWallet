@@ -1,25 +1,11 @@
-# Refuel Wallet Coin Predicate
+<picture>
+  <img src="https://raw.githubusercontent.com/kmonn64/RefuelWallet/main/docs/img/logo.jpg" width="200px"/>
+</picture>
 
-The Refuel Wallet Coin Predicate is for coins that are custodied by EVM style signatures and unlocked through signed EVM transactions. This predicate runs through the following checks:
-- Predicate data is a signed EVM transaction
-- EVM transaction signature is as expected
-- Checks what type of transaction this is...
-	- Simple transfer or ERC20 token transfer
-		- Nonce NFT is included as input
-		- Nonce NFT contract is included
-		- Appropriate amount of inputs are included
-		- Appropriate outputs are included
-    - Enough gas has been provided
-    - Script bytecode hash for the transaction matches for the designated [Token Script](#token-script)
+# ReFuel Predicate
+A server that wraps interacting with Fuel v2 into the more common EVM JSON-RPC API. For a more detailed overview of the project, refer to the more in-depth overview found [here]().
 
-If all of these conditions are met, then the predicate evaluates as true.
-
-### Token Script
-
-The predicate relies on a script for simple token transfer transactions that performs only the following operations:
-- Transfer the exact amount of tokens to the recipient specified in the signed EVM transaction
-
-## Building From Source
+## Run Demo
 
 ### Dependencies
 
@@ -29,27 +15,22 @@ The predicate relies on a script for simple token transfer transactions that per
 
 ### Building
 
-Build:
+Compile the predicate code using the following command.
 
 ```sh
 forc build
 ```
 
-Run tests:
+### Execute ReFuel Predicate Transaction
+
+Execute a transaction using the ReFuel predicate by running the tests.
 
 ```sh
 cargo test
 ```
 
-## Contributing
-
-Code must be formatted.
-
-```sh
-forc fmt
-cargo fmt
-```
+You should see a successful parsing of a signed EVM raw transaction by the predicate. You can see a detailed breakdown of all the data the predicate is parsing and checking in the predicates core code found [here](./refuel-predicate/src/refuel_predicate.sw).
 
 ## License
 
-The primary license for this repo is `Apache 2.0`, see [`LICENSE`](./LICENSE).
+The primary license for this repo is `Apache-2.0`, see [`LICENSE`](./LICENSE).
