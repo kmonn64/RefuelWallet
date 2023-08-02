@@ -4,7 +4,7 @@
 
 # ReFuel Nonce Manager
 
-A Fuel smart contract that helps keeps track of account nonces to prevent replay attacks
+A Fuel smart contract that helps keeps track of account nonces to prevent replay attacks. For a more detailed overview of the project, refer to the more in-depth overview found [here](./docs/ReFuelWalletOverview.pdf).
 
 ## License
 
