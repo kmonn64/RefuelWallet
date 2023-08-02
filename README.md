@@ -11,7 +11,7 @@ The ReFuel wallet is a set of middleware that enables interaction with a Fuel v2
 - **[Coin Predicate](./predicate)** - [[DEMO]]() A predicate that requires a signed EVM transaction in order to unlock coins and spend them in the desired way
 - **[Nonce Manager](./nonce)** - A Fuel smart contract that helps keeps track of account nonces to prevent replay attacks
 
-For a more detailed overview of the project, refer to the more in-depth overview found [here](./docs/RefeulWalletOverview.pdf).
+For a more detailed overview of the project, refer to the more in-depth overview found [here](./docs/RefuelWalletOverview.pdf).
 
 ## TODOs
 
