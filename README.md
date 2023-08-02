@@ -7,8 +7,8 @@ Supercharging common EVM wallets with the power of **Fuel v2**
 ## Project Overview
 
 The ReFuel wallet is a set of middleware that enables interaction with a Fuel v2 chain using existing EVM based wallets and consists of three different parts:
-- **[JSON-RPC API](./rpc)** - [[DEMO]]() A server that wraps interacting with Fuel v2 into the more common EVM JSON-RPC API 
-- **[Coin Predicate](./predicate)** - [[DEMO]]() A predicate that requires a signed EVM transaction in order to unlock coins and spend them in the desired way
+- **[JSON-RPC API](./rpc)** - [[DEMO]](./rpc/README.md#run-demo) A server that wraps interacting with Fuel v2 into the more common EVM JSON-RPC API 
+- **[Coin Predicate](./predicate)** - [[DEMO]](./predicate/README.md#run-demo) A predicate that requires a signed EVM transaction in order to unlock coins and spend them in the desired way
 - **[Nonce Manager](./nonce)** - A Fuel smart contract that helps keeps track of account nonces to prevent replay attacks
 
 For a more detailed overview of the project, refer to the more in-depth overview found [here](./docs/ReFuelWalletOverview.pdf).
