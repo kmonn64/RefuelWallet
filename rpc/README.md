@@ -3,7 +3,7 @@
 </picture>
 
 # ReFuel JSON-RPC Server
-A server that wraps interacting with Fuel v2 into the more common EVM JSON-RPC API. For a more detailed overview of the project, refer to the more in-depth overview found [here]().
+A server that wraps interacting with Fuel v2 into the more common EVM JSON-RPC API. For a more detailed overview of the project, refer to the more in-depth overview found [here](./docs/ReFuelWalletOverview.pdf).
 
 ## Run Demo
 
@@ -27,7 +27,7 @@ npm run start
 Under the network selection dropdown, clock the "Add Network" button. Select the "Add a network manually" option down at the bottom of the screen. Fill in network details for the locally running ReFuel wallet server.
 
 <picture>
-  <img src="https://raw.githubusercontent.com/kmonn64/RefuelWallet/main/docs/demo_add_account.png" width="200px"/>
+  <img src="https://raw.githubusercontent.com/kmonn64/RefuelWallet/main/docs/demo_add_account.png" width="600px"/>
 </picture>
 
 ### Fund MetaMask Accounts
@@ -40,7 +40,7 @@ Look up your accounts corresponding Fuel side addresses for the ReFuel predicate
 Use the [Fuel Beta-3 Faucet](https://faucet-beta-3.fuel.network/) to fund your accounts using the corresponding Fuel addresses. Once funded, you should see the balance correctly reflected in your MetaMask wallet.
 
 <picture>
-  <img src="https://raw.githubusercontent.com/kmonn64/RefuelWallet/main/docs/demo_show_balance.png" width="200px"/>
+  <img src="https://raw.githubusercontent.com/kmonn64/RefuelWallet/main/docs/demo_show_balance.png" width="300px"/>
 </picture>
 
 ### Transfer Funds via MetaMask
@@ -48,11 +48,11 @@ Use the [Fuel Beta-3 Faucet](https://faucet-beta-3.fuel.network/) to fund your a
 Click the "Send" button in your MetaMask wallet and choose an account to send ETH to. You should be abe to go through the typical MetaMask process and see the gas fee set at 0.0001 ETH. Once you confirm the action, you should see your transactions go through sucessfully and the receiving account receive the sent ETH.
 
 <picture>
-  <img src="https://raw.githubusercontent.com/kmonn64/RefuelWallet/main/docs/demo_show_send.png" width="200px"/>
+  <img src="https://raw.githubusercontent.com/kmonn64/RefuelWallet/main/docs/demo_show_send.png" width="300px"/>
 </picture>
 
 <picture>
-  <img src="https://raw.githubusercontent.com/kmonn64/RefuelWallet/main/docs/demo_show_sent.png" width="200px"/>
+  <img src="https://raw.githubusercontent.com/kmonn64/RefuelWallet/main/docs/demo_show_sent.png" width="300px"/>
 </picture>
 
 ## License
