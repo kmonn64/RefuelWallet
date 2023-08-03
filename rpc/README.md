@@ -1,6 +1,4 @@
-<picture>
-  <img src="./../docs/img/logo.jpg" width="200px"/>
-</picture>
+<img src="./../docs/img/logo.jpg" width="200px"/>
 
 # ReFuel JSON-RPC Server
 A server that wraps interacting with Fuel v2 into the more common EVM JSON-RPC API. For a more detailed overview of the project, refer to the more in-depth overview found [here](./docs/ReFuelWalletOverview.pdf).
@@ -26,9 +24,7 @@ npm run start
 
 Under the network selection dropdown, clock the "Add Network" button. Select the "Add a network manually" option down at the bottom of the screen. Fill in network details for the locally running ReFuel wallet server.
 
-<picture>
-  <img src="./../docs/demo_add_account.png" width="600px"/>
-</picture>
+<img src="./../docs/demo_add_account.png" width="600px"/>
 
 ### Fund MetaMask Accounts
 
@@ -39,9 +35,7 @@ Look up your accounts corresponding Fuel side addresses for the ReFuel predicate
 
 Use the [Fuel Beta-3 Faucet](https://faucet-beta-3.fuel.network/) to fund your accounts using the corresponding Fuel addresses. Once funded, you should see the balance correctly reflected in your MetaMask wallet.
 
-<picture>
-  <img src="./../docs/demo_show_balance.png" width="300px"/>
-</picture>
+<img src="./../docs/demo_show_balance.png" width="300px"/>
 
 ### Transfer Funds via MetaMask
 
@@ -50,7 +44,6 @@ Click the "Send" button in your MetaMask wallet and choose an account to send ET
 <picture>
   <img src="./../docs/demo_show_send.png" width="300px"/>
 </picture>
-
 <picture>
   <img src="./../docs/demo_show_sent.png" width="300px"/>
 </picture>
