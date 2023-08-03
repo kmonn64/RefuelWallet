@@ -1,6 +1,4 @@
-<picture>
-  <img src="https://raw.githubusercontent.com/kmonn64/RefuelWallet/main/docs/img/logo.jpg" width="200px"/>
-</picture>
+<img src="./../docs/img/logo.jpg" width="200px"/>
 
 # ReFuel Nonce Manager
 
