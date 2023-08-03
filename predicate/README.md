@@ -1,6 +1,4 @@
-<picture>
-  <img src="https://raw.githubusercontent.com/kmonn64/RefuelWallet/main/docs/img/logo.jpg" width="200px"/>
-</picture>
+<img src="./../docs/img/logo.jpg" width="200px"/>
 
 # ReFuel Predicate
 A server that wraps interacting with Fuel v2 into the more common EVM JSON-RPC API. For a more detailed overview of the project, refer to the more in-depth overview found [here](./docs/ReFuelWalletOverview.pdf).
