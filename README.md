@@ -1,6 +1,4 @@
-<picture>
-    <img alt="ReFuel Wallet logo" width="800px" src="./docs/img/banner.jpg">
-</picture>
+<img alt="ReFuel Wallet logo" width="800px" src="./docs/img/banner.jpg">
 
 Supercharging common EVM wallets with the power of **Fuel v2**
 
